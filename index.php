@@ -25,8 +25,11 @@ if ($request === '/nginx' || $request === "/$scriptname/nginx") {
 
 // jicofo status
 } elseif ($request === '/jicofo' || $request === "/$scriptname/jicofo") {
+    $jicofoStatsCommand = 'curl -s http://localhost:8888/stats';
+    $jicofoStatsData = getJicofoStats($jicofoStatsCommand);
     $data = [
         'jicofo_status'		=> getJicofoStatus(),
+        'jicofo_API_stats'	=> $jicofoStatsData;
     ];
     echo json_encode($data, JSON_PRETTY_PRINT) . "\n";
 

@@ -23,6 +23,14 @@ function getJicofoStatus() {
     $status = trim(shell_exec('systemctl is-active jicofo'));
     return ($status === 'active') ? 'running' : 'not running';
 }
+function getJicofoStats($command) {
+    $data = shell_exec($command);
+    $decodedData = json_decode($data, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        return ['error' => 'Failed to decode the JSON reply from the service.'];
+    }
+    return $decodedData;
+}
 
 
 // get JVB data
