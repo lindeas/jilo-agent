@@ -35,8 +35,16 @@ function getJicofoStats($command) {
 
 // get JVB data
 function getJVBStatus() {
-    $status = trim(shell_exec('systemctl is-active jitsi-videobridge'));
+    $status = trim(shell_exec('systemctl is-active jitsi-videobridge2'));
     return ($status === 'active') ? 'running' : 'not running';
+}
+function getJVBStats($command) {
+    $data = shell_exec($command);
+    $decodedData = json_decode($data, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        return ['error' => 'Failed to decode the JSON reply from the service.'];
+    }
+    return $decodedData;
 }
 
 ?>

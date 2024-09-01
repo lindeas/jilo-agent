@@ -35,8 +35,11 @@ if ($request === '/nginx' || $request === "/$scriptname/nginx") {
 
 // jvb status
 } elseif ($request === '/jvb' || $request === "/$scriptname/jvb") {
+    $jvbStatsCommand = 'curl -s http://localhost:8080/stats';
+    $jvbStatsData = getJVBStats($jvbStatsCommand);
     $data = [
         'jvb_status'		=> getJVBStatus(),
+        'jvb_API_stats'		=> $jvbStatsData,
     ];
     echo json_encode($data, JSON_PRETTY_PRINT) . "\n";
 
