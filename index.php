@@ -29,7 +29,7 @@ if ($request === '/nginx' || $request === "/$scriptname/nginx") {
     $jicofoStatsData = getJicofoStats($jicofoStatsCommand);
     $data = [
         'jicofo_status'		=> getJicofoStatus(),
-        'jicofo_API_stats'	=> $jicofoStatsData;
+        'jicofo_API_stats'	=> $jicofoStatsData,
     ];
     echo json_encode($data, JSON_PRETTY_PRINT) . "\n";
 
