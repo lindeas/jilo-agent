@@ -1,5 +1,6 @@
 <?php
 
+require 'config.php';
 include 'functions.php';
 
 $scriptname = basename($_SERVER['SCRIPT_NAME']);
@@ -25,7 +26,7 @@ if ($request === '/nginx' || $request === "/$scriptname/nginx") {
 
 // jicofo status
 } elseif ($request === '/jicofo' || $request === "/$scriptname/jicofo") {
-    $jicofoStatsCommand = 'curl -s http://localhost:8888/stats';
+    $jicofoStatsCommand = "curl -s $jicofoStatsURL";
     $jicofoStatsData = getJicofoStats($jicofoStatsCommand);
     $data = [
         'jicofo_status'		=> getJicofoStatus(),
@@ -35,7 +36,7 @@ if ($request === '/nginx' || $request === "/$scriptname/nginx") {
 
 // jvb status
 } elseif ($request === '/jvb' || $request === "/$scriptname/jvb") {
-    $jvbStatsCommand = 'curl -s http://localhost:8080/stats';
+    $jvbStatsCommand = "curl -s $jvbStatsURL";
     $jvbStatsData = getJVBStats($jvbStatsCommand);
     $data = [
         'jvb_status'		=> getJVBStatus(),

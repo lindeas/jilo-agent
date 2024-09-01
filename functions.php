@@ -6,7 +6,7 @@ function getNginxStatus() {
     return ($status === 'active') ? 'running' : 'not running';
 }
 function getNginxConnections() {
-    $connections = shell_exec("netstat -an | grep ':80' | wc -l");
+    $connections = shell_exec("netstat -an | grep ':$nginxPort' | wc -l");
     return intval(trim($connections));
 }
 
