@@ -14,7 +14,13 @@ This project is licensed under the GNU General Public License version 2 (GPL-2.0
 
 ## installation
 
-Clone the git repo.
+Clone the git repo. Either run the agent with Go or build it and run the executable.
+
+Run it (for tests mainly):
+
+```bash
+go run main.go
+```
 
 Build the agent:
 
