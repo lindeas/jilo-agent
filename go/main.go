@@ -55,6 +55,20 @@ func getNginxState() string {
     return "not running"
 }
 
+// getJicofoState checks the status of the Jicofo service
+func getJicofoState() string {
+    output, err := exec.Command("systemctl", "is-active", "jicofo").Output()
+    if err != nil {
+        log.Printf("Error checking the jicofo state: %v", err)
+        return "error"
+    }
+    state := strings.TrimSpace(string(output))
+    if state == "active" {
+        return "running"
+    }
+    return "not running"
+}
+
 // getNginxConnections gets the number of active connections to the specified web port
 func getNginxConnections(nginxPort int) int {
     cmd := fmt.Sprintf("netstat -an | grep ':%d' | wc -l", nginxPort)
@@ -119,6 +133,17 @@ func nginxHandler(config Config, w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(data)
 }
 
+// jicofoHandler handles the /jicofo endpoint
+func jicofoHandler(config Config, w http.ResponseWriter, r *http.Request) {
+    data := JicofoData {
+        JicofoState:		getJicofoState(),
+        JicofoAPIData:		getJicofoAPIData(),
+    }
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(data)
+}
+
+
 // main sets up the http server and the routes
 func main() {
 
@@ -132,10 +157,13 @@ func main() {
     http.HandleFunc("/nginx", func(w http.ResponseWriter, r *http.Request) {
         nginxHandler(config, w, r)
     })
+    http.HandleFunc("/jicofo", func(w http.ResponseWriter, r *http.Request) {
+        jicofoHandler(config, w, r)
+    })
 
     // start the http server
     agentPortStr := fmt.Sprintf(":%d", config.AgentPort)
-    fmt.Printf("Starting agent server on port %d.\n", config.AgentPort)
+    fmt.Printf("Starting Jilo agent server on port %d.\n", config.AgentPort)
     if err := http.ListenAndServe(agentPortStr, nil); err != nil {
         log.Fatalf("Could not start the server: %v\n", err)
     }
