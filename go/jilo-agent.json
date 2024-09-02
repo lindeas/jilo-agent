@@ -1,0 +1,5 @@
+{
+    "agent_port": 8080,
+    "nginx_port": 80,
+    "jicofo_stats_url": "http://localhost:8888/stats"
+}
