@@ -1,7 +1,43 @@
 # jilo-agent
 
+## overview
+
 Jilo Agent - a remote agent for Jilo Web
 
 Initial version is in PHP.
 
 The current version is in "go" folder and is in Go.
+
+## license
+
+This project is licensed under the GNU General Public License version 2 (GPL-2.0). See LICENSE file.
+
+## installation
+
+Clone the git repo.
+
+Build the agent:
+
+```bash
+go build -o jilo-agent main.go
+```
+
+## configuration
+
+The config file is "jilo-agent.json", in the same folder as the "jilo-agent" binary.
+
+## usage
+
+Run the agent
+
+```bash
+./jilo-agent
+```
+
+Send queries to its port (by default 8080, configurable in jilo-agent.json):
+
+```bash
+curl -s http://localhost:8080/nginx
+curl -s http://localhost:8080/jicofo
+etc...
+```
