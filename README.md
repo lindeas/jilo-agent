@@ -14,13 +14,7 @@ This project is licensed under the GNU General Public License version 2 (GPL-2.0
 
 ## installation
 
-Clone the git repo. Either run the agent with Go or build it and run the executable.
-
-Run it (for tests mainly):
-
-```bash
-go run main.go
-```
+Clone the git repo.
 
 Build the agent:
 
@@ -40,10 +34,10 @@ Run the agent
 ./jilo-agent
 ```
 
-Send queries to its port (by default 8081, in order to avoid 80, 8080, 8888; configurable in jilo-agent.json):
+Send queries to its port (by default 8080, configurable in jilo-agent.json):
 
 ```bash
-curl -s http://localhost:8081/nginx
-curl -s http://localhost:8081/jicofo
+curl -s http://localhost:8080/nginx
+curl -s http://localhost:8080/jicofo
 etc...
 ```

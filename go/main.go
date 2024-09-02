@@ -27,7 +27,9 @@ import (
 type Config struct {
     AgentPort		int	`json:"agent_port"`
     NginxPort		int	`json:"nginx_port"`
+    ProsodyPort		int	`json:"prosody_port"`
     JicofoStatsURL	string	`json:"jicofo_stats_url"`
+    JVBStatsURL		string	`json:"jvb_stats_url"`
 }
 
 // NginxData holds the nginx data structure for the API response to /nginx
@@ -36,10 +38,22 @@ type NginxData struct {
     NginxConnections	int	`json:"nginx_connections"`
 }
 
+// ProsodyData holds the prosody data structure for the API response to /prosody
+type ProsodyData struct {
+    ProsodyState	string	`json:"prosody_state"`
+    ProsodyConnections	int	`json:"prosody_connections"`
+}
+
 // JicofoData holds the Jicofo data structure for the API response to /jicofo
 type JicofoData struct {
     JicofoState		string			`json:"jicofo_state"`
     JicofoAPIData	map[string]interface{}	`json:"jicofo_api_data"`
+}
+
+// JVBData holds the JVB data structure for the API response to /jvb
+type JVBData struct {
+    JVBState		string			`json:"jvb_state"`
+    JVBAPIData		map[string]interface{}	`json:"jvb_api_data"`
 }
 
 // getServiceState checks the status of the speciied service
@@ -56,12 +70,12 @@ func getServiceState(service string) string {
     return "not running"
 }
 
-// getNginxConnections gets the number of active connections to the specified web port
-func getNginxConnections(port int) int {
+// getServiceConnections gets the number of active connections to the specified port
+func getServiceConnections(service string, port int) int {
     cmd := fmt.Sprintf("netstat -an | grep ':%d' | wc -l", port)
     output, err := exec.Command("bash", "-c", cmd).Output()
     if err != nil {
-        log.Printf("Error counting the Nginx connections: %v", err)
+        log.Printf("Error counting the \"%v\" connections: %v", service, err)
         return -1
     }
     connections := strings.TrimSpace(string(output))
@@ -90,32 +104,53 @@ func getJitsiAPIData(service string, url string) map[string]interface{} {
 }
 
 // loadConfig loads the configuration from a JSON config file
-func loadConfig(filename string) (Config, error) {
-    var config Config
+func loadConfig(filename string) (Config) {
 
+    // default config values
+    config := Config {
+        AgentPort: 8081, // default Agent port (we avoid 80, 443, 8080 and 8888)
+        NginxPort: 80, // default nginx port
+        ProsodyPort: 5222, // default prosody port
+        JicofoStatsURL: "http://localhost:8888/stats", // default Jicofo stats URL
+        JVBStatsURL: "http://localhost:8080/colibri/stats", // default JVB stats URL
+    }
+
+    // we try to load the config file; use default values otherwise
     file, err := os.Open(filename)
     if err != nil {
-        return config, err
+        log.Printf("Can't open the config file \"%v\". Using default values.", filename)
+        return config
     }
     defer file.Close()
 
     bytes, err := ioutil.ReadAll(file)
     if err != nil {
-        return config, err
+        log.Printf("There was an error reading the config file. Using default values")
+        return config
     }
 
     if err := json.Unmarshal(bytes, &config); err != nil {
-        return config, err
+        log.Printf("Error parsing the config file. Using default values.")
     }
 
-    return config, nil
+    return config
 }
 
 // nginxHandler handles the /nginx endpoint
 func nginxHandler(config Config, w http.ResponseWriter, r *http.Request) {
     data := NginxData {
         NginxState:		getServiceState("nginx"),
-        NginxConnections:	getNginxConnections(config.NginxPort),
+        NginxConnections:	getServiceConnections("nginx", config.NginxPort),
+    }
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(data)
+}
+
+// prosodyHandler handles the /prosody endpoint
+func prosodyHandler(config Config, w http.ResponseWriter, r *http.Request) {
+    data := ProsodyData {
+        ProsodyState:		getServiceState("prosody"),
+        ProsodyConnections:	getServiceConnections("prosody", config.ProsodyPort),
     }
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(data)
@@ -131,22 +166,35 @@ func jicofoHandler(config Config, w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(data)
 }
 
+// jvbHandler handles the /jvb endpoint
+func jvbHandler(config Config, w http.ResponseWriter, r *http.Request) {
+    data := JVBData {
+        JVBState:		getServiceState("jitsi-videobridge2"),
+        JVBAPIData:		getJitsiAPIData("jitsi-videobridge2", config.JVBStatsURL),
+    }
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(data)
+}
+
 
 // main sets up the http server and the routes
 func main() {
 
     // load the configuration
-    config, err := loadConfig("jilo-agent.json")
-    if err != nil {
-        log.Fatalf("Error loading the config file: %v\n", err)
-    }
+    config := loadConfig("jilo-agent.json")
 
     // endpoints
     http.HandleFunc("/nginx", func(w http.ResponseWriter, r *http.Request) {
         nginxHandler(config, w, r)
     })
+    http.HandleFunc("/prosody", func(w http.ResponseWriter, r *http.Request) {
+        prosodyHandler(config, w, r)
+    })
     http.HandleFunc("/jicofo", func(w http.ResponseWriter, r *http.Request) {
         jicofoHandler(config, w, r)
+    })
+    http.HandleFunc("/jvb", func(w http.ResponseWriter, r *http.Request) {
+        jvbHandler(config, w, r)
     })
 
     // start the http server
