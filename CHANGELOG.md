@@ -15,6 +15,6 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial version in PHP
 - New version in folder "go", written in Go
-- Added endpoints for /nginx, /prosody, /jicofo, /jvb
+- Added endpoints for /nginx, /prosody, /jicofo, /jvb, /jibri
 - Added a config file and default values
 - Initial vesion of a build script

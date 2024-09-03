@@ -12,9 +12,10 @@ Version: 0.1
 package main
 
 import (
-    "encoding/json"
     "fmt"
+    "encoding/json"
     "gopkg.in/yaml.v2"
+    "github.com/dgrijalva/jwt-go"
     "io/ioutil"
     "log"
     "net/http"
@@ -27,11 +28,19 @@ import (
 // Config holds the structure of the configuration file
 type Config struct {
     AgentPort		int	`yaml:"agent_port"`
+    SecretKey		string	`yaml:"secret_key"`
     NginxPort		int	`yaml:"nginx_port"`
     ProsodyPort		int	`yaml:"prosody_port"`
     JicofoStatsURL	string	`yaml:"jicofo_stats_url"`
     JVBStatsURL		string	`yaml:"jvb_stats_url"`
     JibriHealthURL	string	`yaml:"jibri_health_url"`
+}
+
+// Claims holds JWT access right
+type Claims struct {
+    Username		string	`json:"sub"`
+    Role		string	`json:"role"`
+    jwt.StandardClaims
 }
 
 // NginxData holds the nginx data structure for the API response to /nginx
@@ -63,6 +72,8 @@ type JibriData struct {
     JibriState		string			`json:"jibri_state"`
     JibriHealthData	map[string]interface{}	`json:"jibri_health_data"`
 }
+
+var secretKey []byte
 
 // getServiceState checks the status of the speciied service
 func getServiceState(service string) string {
@@ -145,6 +156,48 @@ func loadConfig(filename string) (Config) {
     return config
 }
 
+// authenticationJWT handles the JWT auth
+func authenticationJWT(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        tokenString := r.Header.Get("Authorization")
+
+        // empty auth header
+        if tokenString == "" {
+            http.Error(w, "Auth header not received", http.StatusUnauthorized)
+            return
+        }
+
+        // remove "Bearer "
+        if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+            tokenString = tokenString[7:]
+        }
+
+        claims := &Claims{}
+
+        token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+            return secretKey, nil
+        })
+
+        // JWT errors
+        if err != nil {
+            if err == jwt.ErrSignatureInvalid {
+                http.Error(w, "Invalid JWT signature", http.StatusUnauthorized)
+                return
+            }
+            http.Error(w, "Error parsing JWT", http.StatusUnauthorized)
+            return
+        }
+
+        // JWT invalid
+        if !token.Valid {
+            http.Error(w, "Invali JWT token", http.StatusUnauthorized)
+            return
+        }
+
+        next.ServeHTTP(w, r)
+    })
+}
+
 // nginxHandler handles the /nginx endpoint
 func nginxHandler(config Config, w http.ResponseWriter, r *http.Request) {
     data := NginxData {
@@ -201,23 +254,24 @@ func main() {
 
     // load the configuration
     config := loadConfig("jilo-agent.conf")
+    secretKey = []byte(config.SecretKey)
 
     // endpoints
-    http.HandleFunc("/nginx", func(w http.ResponseWriter, r *http.Request) {
+    http.Handle("/nginx", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         nginxHandler(config, w, r)
-    })
-    http.HandleFunc("/prosody", func(w http.ResponseWriter, r *http.Request) {
+    })))
+    http.Handle("/prosody", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         prosodyHandler(config, w, r)
-    })
-    http.HandleFunc("/jicofo", func(w http.ResponseWriter, r *http.Request) {
+    })))
+    http.Handle("/jicofo", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         jicofoHandler(config, w, r)
-    })
-    http.HandleFunc("/jvb", func(w http.ResponseWriter, r *http.Request) {
+    })))
+    http.Handle("/jvb", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         jvbHandler(config, w, r)
-    })
-    http.HandleFunc("/jibri", func(w http.ResponseWriter, r *http.Request) {
+    })))
+    http.Handle("/jibri", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         jibriHandler(config, w, r)
-    })
+    })))
 
     // start the http server
     agentPortStr := fmt.Sprintf(":%d", config.AgentPort)
