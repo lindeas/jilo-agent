@@ -14,6 +14,7 @@ package main
 import (
     "encoding/json"
     "fmt"
+    "gopkg.in/yaml.v2"
     "io/ioutil"
     "log"
     "net/http"
@@ -25,11 +26,11 @@ import (
 
 // Config holds the structure of the configuration file
 type Config struct {
-    AgentPort		int	`json:"agent_port"`
-    NginxPort		int	`json:"nginx_port"`
-    ProsodyPort		int	`json:"prosody_port"`
-    JicofoStatsURL	string	`json:"jicofo_stats_url"`
-    JVBStatsURL		string	`json:"jvb_stats_url"`
+    AgentPort		int	`yaml:"agent_port"`
+    NginxPort		int	`yaml:"nginx_port"`
+    ProsodyPort		int	`yaml:"prosody_port"`
+    JicofoStatsURL	string	`yaml:"jicofo_stats_url"`
+    JVBStatsURL		string	`yaml:"jvb_stats_url"`
 }
 
 // NginxData holds the nginx data structure for the API response to /nginx
@@ -103,7 +104,7 @@ func getJitsiAPIData(service string, url string) map[string]interface{} {
     return result
 }
 
-// loadConfig loads the configuration from a JSON config file
+// loadConfig loads the configuration from a YAML config file
 func loadConfig(filename string) (Config) {
 
     // default config values
@@ -129,7 +130,7 @@ func loadConfig(filename string) (Config) {
         return config
     }
 
-    if err := json.Unmarshal(bytes, &config); err != nil {
+    if err := yaml.Unmarshal(bytes, &config); err != nil {
         log.Printf("Error parsing the config file. Using default values.")
     }
 
@@ -181,7 +182,7 @@ func jvbHandler(config Config, w http.ResponseWriter, r *http.Request) {
 func main() {
 
     // load the configuration
-    config := loadConfig("jilo-agent.json")
+    config := loadConfig("jilo-agent.conf")
 
     // endpoints
     http.HandleFunc("/nginx", func(w http.ResponseWriter, r *http.Request) {

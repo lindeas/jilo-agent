@@ -1,6 +1,0 @@
-{
-    "agent_port": 8081,
-    "nginx_port": 80,
-    "jicofo_stats_url": "http://localhost:8888/stats",
-    "jvb_stats_url": "http://localhost:8080/colibri/stats"
-}
