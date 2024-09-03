@@ -31,6 +31,7 @@ type Config struct {
     ProsodyPort		int	`yaml:"prosody_port"`
     JicofoStatsURL	string	`yaml:"jicofo_stats_url"`
     JVBStatsURL		string	`yaml:"jvb_stats_url"`
+    JibriHealthURL	string	`yaml:"jibri_health_url"`
 }
 
 // NginxData holds the nginx data structure for the API response to /nginx
@@ -55,6 +56,12 @@ type JicofoData struct {
 type JVBData struct {
     JVBState		string			`json:"jvb_state"`
     JVBAPIData		map[string]interface{}	`json:"jvb_api_data"`
+}
+
+// JibriData holds the Jibri data structure for the API response to /jibri
+type JibriData struct {
+    JibriState		string			`json:"jibri_state"`
+    JibriHealthData	map[string]interface{}	`json:"jibri_health_data"`
 }
 
 // getServiceState checks the status of the speciied service
@@ -114,6 +121,7 @@ func loadConfig(filename string) (Config) {
         ProsodyPort: 5222, // default prosody port
         JicofoStatsURL: "http://localhost:8888/stats", // default Jicofo stats URL
         JVBStatsURL: "http://localhost:8080/colibri/stats", // default JVB stats URL
+        JibriHealthURL: "http://localhost:2222/jibri/api/v1.0/health", // default Jibri health URL
     }
 
     // we try to load the config file; use default values otherwise
@@ -177,6 +185,16 @@ func jvbHandler(config Config, w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(data)
 }
 
+// jibriHandler handles the /jibri endpoint
+func jibriHandler(config Config, w http.ResponseWriter, r *http.Request) {
+    data := JibriData {
+        JibriState:		getServiceState("jibri"),
+        JibriHealthData:	getJitsiAPIData("jibri", config.JibriHealthURL),
+    }
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(data)
+}
+
 
 // main sets up the http server and the routes
 func main() {
@@ -197,11 +215,14 @@ func main() {
     http.HandleFunc("/jvb", func(w http.ResponseWriter, r *http.Request) {
         jvbHandler(config, w, r)
     })
+    http.HandleFunc("/jibri", func(w http.ResponseWriter, r *http.Request) {
+        jibriHandler(config, w, r)
+    })
 
     // start the http server
     agentPortStr := fmt.Sprintf(":%d", config.AgentPort)
-    fmt.Printf("Starting Jilo agent server on port %d.\n", config.AgentPort)
+    fmt.Printf("Starting Jilo agent on port %d.\n", config.AgentPort)
     if err := http.ListenAndServe(agentPortStr, nil); err != nil {
-        log.Fatalf("Could not start the server: %v\n", err)
+        log.Fatalf("Could not start the agent: %v\n", err)
     }
 }
