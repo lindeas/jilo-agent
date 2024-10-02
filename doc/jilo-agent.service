@@ -1,0 +1,14 @@
+[Unit]
+Description=Jilo Agent Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/jilo-agent -c /usr/local/etc/jilo-agent.conf
+PIDFile=/run/jilo-agent.pid
+Restart=always
+SyslogIdentifier=jilo-agent
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

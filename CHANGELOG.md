@@ -15,6 +15,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Removed PHP version
 - Added support for HTTPS
+- Added SysV init script
+- Added Systemd service file
+- Added installation script
 
 ---
 
@@ -31,5 +34,5 @@ All notable changes to this project will be documented in this file.
 - New version in folder "go", written in Go
 - Added endpoints for /nginx, /prosody, /jicofo, /jvb, /jibri
 - Added a config file and default values
-- Initial vesion of a build script
+- Initial version of a build script
 - Works with JWT tokens

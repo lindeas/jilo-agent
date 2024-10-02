@@ -1,0 +1,76 @@
+#!/bin/bash
+# /etc/init.d/jilo-agent
+# Init script for Jilo Agent
+
+### BEGIN INIT INFO
+# Provides:          jilo-agent
+# Required-Start:    $network
+# Required-Stop:     $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start the Jilo Agent service
+# Description:       This script starts and stops the Jilo Agent service.
+### END INIT INFO
+
+AGENT_PATH="/usr/local/bin/jilo-agent"
+CONFIG_FILE="/usr/local/etc/jilo-agent.conf"
+AGENT_NAME="Jilo Agent"
+AGENT_PID="/var/run/jilo-agent.pid"
+LOG_FILE="/var/log/jilo-agent.log"
+
+# Function to start the jilo agent
+start_agent() {
+    if [ -f "$AGENT_PID" ]; then
+        echo "$AGENT_NAME is already running."
+    else
+        echo "Starting $AGENT_NAME..."
+        nohup $AGENT_PATH -c $CONFIG_FILE > $LOG_FILE 2>&1 &
+        echo $! > "$AGENT_PID"
+        echo "$AGENT_NAME started."
+    fi
+}
+
+# Function to stop the jilo agent
+stop_agent() {
+    if [ ! -f "$AGENT_PID" ]; then
+        echo "$AGENT_NAME is not running."
+    else
+        echo "Stopping $AGENT_NAME..."
+        kill -9 $(cat "$AGENT_PID") && rm -f "$AGENT_PID"
+        echo "$AGENT_NAME stopped."
+    fi
+}
+
+# Function to restart the jilo agent
+restart_agent() {
+    echo "Restarting $AGENT_NAME..."
+    stop_agent
+    sleep 1
+    start_agent
+}
+
+# Check for the first argument
+case "$1" in
+    start)
+        start_agent
+        ;;
+    stop)
+        stop_agent
+        ;;
+    restart)
+        restart_agent
+        ;;
+    status)
+        if [ -f "$AGENT_PID" ]; then
+            echo "$AGENT_NAME is running with PID $(cat $AGENT_PID)."
+        else
+            echo "$AGENT_NAME is not running."
+        fi
+        ;;
+    *)
+        echo "Usage: /etc/init.d/agent {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+exit 0
