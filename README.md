@@ -2,11 +2,7 @@
 
 ## overview
 
-Jilo Agent - a remote agent for Jilo Web
-
-Initial version is in PHP.
-
-The current version is in "go" folder and is in Go.
+Jilo Agent - a remote agent for Jilo Web written in Go.
 
 ## license
 
@@ -31,6 +27,8 @@ go build -o jilo-agent main.go
 ## configuration
 
 The config file is "jilo-agent.json", in the same folder as the "jilo-agent" binary.
+
+If you add the SSL config options, HTTPS will be used.
 
 You can run the agent without a config file - then default vales are used.
 

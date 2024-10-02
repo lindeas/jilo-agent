@@ -15,6 +15,6 @@
 # - upx
 ###
 
-CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o jilo-agent main.go
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o jilo-agent ../main.go
 upx --best --lzma -o jilo-agent-upx jilo-agent
 mv jilo-agent-upx jilo-agent

@@ -28,6 +28,8 @@ import (
 // Config holds the structure of the configuration file
 type Config struct {
     AgentPort		int	`yaml:"agent_port"`
+    SSLcert		string	`yaml:"ssl_cert"`
+    SSLkey		string	`yaml:"ssl_key"`
     SecretKey		string	`yaml:"secret_key"`
     NginxPort		int	`yaml:"nginx_port"`
     ProsodyPort		int	`yaml:"prosody_port"`
@@ -317,7 +319,8 @@ func main() {
     // start the http server
     agentPortStr := fmt.Sprintf(":%d", config.AgentPort)
     fmt.Printf("Starting Jilo agent on port %d.\n", config.AgentPort)
-    if err := http.ListenAndServe(agentPortStr, corsHandler); err != nil {
+//    if err := http.ListenAndServe(agentPortStr, corsHandler); err != nil {
+    if err := http.ListenAndServeTLS(agentPortStr, config.SSLcert, config.SSLkey, corsHandler); err != nil {
         log.Fatalf("Could not start the agent: %v\n", err)
     }
 }
