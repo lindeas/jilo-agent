@@ -161,8 +161,12 @@ func authenticationJWT(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         tokenString := r.Header.Get("Authorization")
 
+        // DEBUG print the token for debugging (only for debug, remove in prod)
+        //log.Println("Received token:", tokenString)
+
         // empty auth header
         if tokenString == "" {
+            log.Println("No Authorization header received")
             http.Error(w, "Auth header not received", http.StatusUnauthorized)
             return
         }
@@ -170,27 +174,39 @@ func authenticationJWT(next http.Handler) http.Handler {
         // remove "Bearer "
         if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
             tokenString = tokenString[7:]
+        } else {
+            log.Println("Bearer token missing")
+            http.Error(w, "Malformed Authorization header", http.StatusUnauthorized)
+            return
         }
+
+        // DEBUG print out the token for debugging (remove in production!)
+        //log.Printf("Received JWT: %s", tokenString)
 
         claims := &Claims{}
 
         token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+            // DEBUG log secret key for debugging (remove from production!)
+            //log.Printf("Parsing JWT with secret key: %s", secretKey)
             return secretKey, nil
         })
 
-        // JWT errors
+        // JWT errors and error logging
         if err != nil {
+            // log the error message for debugging (not in prod!)
+            log.Printf("JWT parse error: %v", err)
             if err == jwt.ErrSignatureInvalid {
                 http.Error(w, "Invalid JWT signature", http.StatusUnauthorized)
                 return
             }
-            http.Error(w, "Error parsing JWT", http.StatusUnauthorized)
+            http.Error(w, "Error parsing JWT: "+err.Error(), http.StatusUnauthorized)
             return
         }
 
         // JWT invalid
         if !token.Valid {
-            http.Error(w, "Invali JWT token", http.StatusUnauthorized)
+            log.Println("Invalid JWT token")
+            http.Error(w, "Invalid JWT token", http.StatusUnauthorized)
             return
         }
 
@@ -249,6 +265,26 @@ func jibriHandler(config Config, w http.ResponseWriter, r *http.Request) {
 }
 
 
+// CORS Middleware to handle CORS for all endpoints
+func corsMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Set CORS headers
+        w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins or restrict to specific domain
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+        // Handle preflight (OPTIONS) request
+        if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusNoContent) // Respond with 204 No Content for preflight
+            return
+        }
+
+        // Pass the request to the next handler
+        next.ServeHTTP(w, r)
+    })
+}
+
+
 // main sets up the http server and the routes
 func main() {
 
@@ -256,27 +292,32 @@ func main() {
     config := loadConfig("jilo-agent.conf")
     secretKey = []byte(config.SecretKey)
 
+    mux := http.NewServeMux()
+
     // endpoints
-    http.Handle("/nginx", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    mux.Handle("/nginx", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         nginxHandler(config, w, r)
     })))
-    http.Handle("/prosody", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    mux.Handle("/prosody", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         prosodyHandler(config, w, r)
     })))
-    http.Handle("/jicofo", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    mux.Handle("/jicofo", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         jicofoHandler(config, w, r)
     })))
-    http.Handle("/jvb", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    mux.Handle("/jvb", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         jvbHandler(config, w, r)
     })))
-    http.Handle("/jibri", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    mux.Handle("/jibri", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         jibriHandler(config, w, r)
     })))
+
+    // add the CORS headers to the mux
+    corsHandler := corsMiddleware(mux)
 
     // start the http server
     agentPortStr := fmt.Sprintf(":%d", config.AgentPort)
     fmt.Printf("Starting Jilo agent on port %d.\n", config.AgentPort)
-    if err := http.ListenAndServe(agentPortStr, nil); err != nil {
+    if err := http.ListenAndServe(agentPortStr, corsHandler); err != nil {
         log.Fatalf("Could not start the agent: %v\n", err)
     }
 }
