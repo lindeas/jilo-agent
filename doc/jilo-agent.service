@@ -5,7 +5,7 @@ After=network.target
 [Service]
 ExecStart=/usr/local/bin/jilo-agent -c /usr/local/etc/jilo-agent.conf
 PIDFile=/run/jilo-agent.pid
-Restart=always
+Restart=on-failure
 SyslogIdentifier=jilo-agent
 User=root
 Group=root

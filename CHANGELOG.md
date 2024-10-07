@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - Added SysV init script
 - Added Systemd service file
 - Added installation script
+- Added command line option for config file
 
 ---
 

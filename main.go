@@ -12,6 +12,7 @@ Version: 0.1
 package main
 
 import (
+    "flag"
     "fmt"
     "encoding/json"
     "gopkg.in/yaml.v2"
@@ -290,8 +291,20 @@ func corsMiddleware(next http.Handler) http.Handler {
 // main sets up the http server and the routes
 func main() {
 
-    // load the configuration
-    config := loadConfig("jilo-agent.conf")
+    // Define a flag for the config file
+    configFile := flag.String("c", "./jilo-agent.conf", "Specify the agent config file")
+
+    // Parse the flags
+    flag.Parse()
+
+    // Check if the file exists, fallback to default config file if not
+    if _, err := os.Stat(*configFile); os.IsNotExist(err) {
+        fmt.Println("Config file not found, using default values")
+    }
+
+    // Load the configuration from the specified file (option -c) or the default config file name
+    config := loadConfig(*configFile)
+
     secretKey = []byte(config.SecretKey)
 
     mux := http.NewServeMux()
