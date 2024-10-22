@@ -46,6 +46,12 @@ type Claims struct {
     jwt.StandardClaims
 }
 
+// StatusData holds the status of the agent and its endpoints
+type StatusData struct {
+    AgentStatus string `json:"agent_status"`
+    Endpoints   map[string]string `json:"endpoints"`
+}
+
 // NginxData holds the nginx data structure for the API response to /nginx
 type NginxData struct {
     NginxState		string	`json:"nginx_state"`
@@ -217,6 +223,41 @@ func authenticationJWT(next http.Handler) http.Handler {
     })
 }
 
+// statusHandler handles the /status endpoint
+func statusHandler(config Config, w http.ResponseWriter, r *http.Request) {
+    // Check if the agent is running
+    // FIXME add logic here to check if the agent is running OK, with no errors
+    agentStatus := "running"
+
+    // Prepare the endpoint status map
+    endpointStatuses := make(map[string]string)
+
+    // Check if each endpoint is available or not
+    endpoints := []string{"nginx", "prosody", "jicofo", "jvb", "jibri"}
+    for _, endpoint := range endpoints {
+        endpointURL := fmt.Sprintf("http://localhost:%d/%s", config.AgentPort, endpoint)
+        resp, err := http.Get(endpointURL)
+        if err != nil {
+            endpointStatuses[endpoint] = "not available"
+            continue
+        }
+        defer resp.Body.Close()
+        if resp.StatusCode == http.StatusOK {
+            endpointStatuses[endpoint] = "available"
+        } else {
+            endpointStatuses[endpoint] = "not available"
+        }
+    }
+
+    // Prepare the response data and send back the JSON
+    statusData := StatusData{
+        AgentStatus: agentStatus,
+        Endpoints:   endpointStatuses,
+    }
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(statusData)
+}
+
 // nginxHandler handles the /nginx endpoint
 func nginxHandler(config Config, w http.ResponseWriter, r *http.Request) {
     data := NginxData {
@@ -310,6 +351,9 @@ func main() {
     mux := http.NewServeMux()
 
     // endpoints
+    mux.Handle("/status", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        statusHandler(config, w, r)
+    })))
     mux.Handle("/nginx", authenticationJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         nginxHandler(config, w, r)
     })))
