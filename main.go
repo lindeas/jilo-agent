@@ -280,12 +280,12 @@ func statusHandler(config Config, w http.ResponseWriter, r *http.Request) {
                     for key, value := range result {
                         if strings.HasSuffix(key, "_state") {
                             // If there is "*_state": "error" - it's accessible, but unavailable
-                            if valueStr, ok := value(string); ok && valueStr == "error" {
+                            if valueStr, ok := value.(string); ok && valueStr == "error" {
                                 available = false
                                 break
                             }
                             // If there is "*_state": "running" - it's OK
-                            if valueStr, ok := value(string); ok && valueStr == "running" {
+                            if valueStr, ok := value.(string); ok && valueStr == "running" {
                                 available = true
                                 break
                             }
