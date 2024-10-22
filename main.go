@@ -272,8 +272,40 @@ func statusHandler(config Config, w http.ResponseWriter, r *http.Request) {
 
         // Check the status code from the response recorder
         if rr.Result().StatusCode == http.StatusOK {
-            endpointStatuses[endpoint] = "available"
+            // Check if it's json
+            if rr.Header().Get("Content-Type") == "application/json" {
+                var result map[string]interface{}
+                if err := json.NewDecoder(rr.Body).Decode(&result); err == nil {
+                    available := true
+                    for key, value := range result {
+                        if strings.HasSuffix(key, "_state") {
+                            // If there is "*_state": "error" - it's accessible, but unavailable
+                            if valueStr, ok := value(string); ok && valueStr == "error" {
+                                available = false
+                                break
+                            }
+                            // If there is "*_state": "running" - it's OK
+                            if valueStr, ok := value(string); ok && valueStr == "running" {
+                                available = true
+                                break
+                            }
+                        }
+                    }
+                    if available {
+                        endpointStatuses[endpoint] = "available"
+                    } else {
+                        endpointStatuses[endpoint] = "not available"
+                    }
+                } else {
+                    // Invalid JSON
+                    endpointStatuses[endpoint] = "not available"
+                }
+            } else {
+                // It's not a JSON response
+                endpointStatuses[endpoint] = "not available"
+            }
         } else {
+            // Reply not 200 OK
             endpointStatuses[endpoint] = "not available"
         }
 
