@@ -20,6 +20,7 @@ import (
     "io/ioutil"
     "log"
     "net/http"
+    "net/http/httptest"
     "os"
     "os/exec"
     "strconv"
@@ -242,17 +243,40 @@ func statusHandler(config Config, w http.ResponseWriter, r *http.Request) {
     endpoints := []string{"nginx", "prosody", "jicofo", "jvb", "jibri"}
     for _, endpoint := range endpoints {
         endpointURL := fmt.Sprintf("%s://localhost:%d/%s", protocol, config.AgentPort, endpoint)
-        resp, err := http.Get(endpointURL)
+
+        req, err := http.NewRequest(http.MethodGet, endpointURL, nil)
         if err != nil {
             endpointStatuses[endpoint] = "not available"
             continue
         }
-        defer resp.Body.Close()
-        if resp.StatusCode == http.StatusOK {
+
+        // Copy the JWT token from the original request
+        req.Header.Set("Authorization", r.Header.Get("Authorization"))
+
+        // Create a response recorder to capture the response
+        rr := httptest.NewRecorder()
+
+        // Call the respective handler with the new request
+        switch endpoint {
+        case "nginx":
+            nginxHandler(config, rr, req)
+        case "prosody":
+            prosodyHandler(config, rr, req)
+        case "jicofo":
+            jicofoHandler(config, rr, req)
+        case "jvb":
+            jvbHandler(config, rr, req)
+        case "jibri":
+            jibriHandler(config, rr, req)
+        }
+
+        // Check the status code from the response recorder
+        if rr.Result().StatusCode == http.StatusOK {
             endpointStatuses[endpoint] = "available"
         } else {
             endpointStatuses[endpoint] = "not available"
         }
+
     }
 
     // Prepare the response data and send back the JSON
