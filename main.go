@@ -232,10 +232,16 @@ func statusHandler(config Config, w http.ResponseWriter, r *http.Request) {
     // Prepare the endpoint status map
     endpointStatuses := make(map[string]string)
 
+    // Determine protocol based on SSL config
+    protocol := "http"
+    if config.SSLcert != "" && config.SSLkey != "" {
+        protocol = "https"
+    }
+
     // Check if each endpoint is available or not
     endpoints := []string{"nginx", "prosody", "jicofo", "jvb", "jibri"}
     for _, endpoint := range endpoints {
-        endpointURL := fmt.Sprintf("http://localhost:%d/%s", config.AgentPort, endpoint)
+        endpointURL := fmt.Sprintf("%s://localhost:%d/%s", protocol, config.AgentPort, endpoint)
         resp, err := http.Get(endpointURL)
         if err != nil {
             endpointStatuses[endpoint] = "not available"
