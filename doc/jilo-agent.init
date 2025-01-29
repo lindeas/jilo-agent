@@ -68,7 +68,7 @@ case "$1" in
         fi
         ;;
     *)
-        echo "Usage: /etc/init.d/agent {start|stop|restart|status}"
+        echo "Usage: /etc/init.d/jilo-agent {start|stop|restart|status}"
         exit 1
         ;;
 esac
